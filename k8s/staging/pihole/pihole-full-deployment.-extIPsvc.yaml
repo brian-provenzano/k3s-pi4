@@ -1,0 +1,204 @@
+#
+# Uses metallb for loadbalancer for the services
+#
+apiVersion: v1
+kind: Namespace
+metadata:
+   name: pihole
+---
+# Claim on my NFS pv via nfs client storage provisioner (NFS server on the k8s node for now, but can be external NFS server)
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: pvc-pihole
+  namespace: pihole
+  # can skip this annotation if this storageClass is 'default' (it is in my cluster :))
+  annotations:
+    storageClassName: "managed-nfs-storage"
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi
+---
+# optional for now to customize this if needed.
+# defaults are google DNS
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pihole-custom-dnsmasq
+  namespace: pihole
+  labels:
+    app: pihole
+data:
+  02-custom.conf: |
+    addn-hosts=/etc/addn-hosts
+  addn-hosts: |
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: pihole
+  labels:
+    app: pihole
+  name: pihole
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pihole
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 2
+      maxUnavailable: 0
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: pihole
+    spec:
+      dnsPolicy: None
+      terminationGracePeriodSeconds: 30
+      dnsConfig:
+        nameservers:
+        - 127.0.0.1
+        - 8.8.8.8
+      containers:
+      - image: pihole/pihole:latest
+        name: pihole
+        # pull this out into a configmap / secrets
+        env:
+          # this needs to be the same IP used by metalLB on the service(s)
+          # - name: ServerIP
+          #   value: 192.168.10.215 #TODO - change this!! as noted
+          - name: TZ
+            value: "America/Denver"
+          - name: WEBPASSWORD
+            value: piholetest
+        ports:
+          - containerPort: 80
+            name: http
+            protocol: TCP
+          - containerPort: 53
+            name: dns
+            protocol: TCP
+          - containerPort: 53
+            name: dns-udp
+            protocol: UDP
+          - containerPort: 443
+            name: https
+            protocol: TCP
+          - containerPort: 67
+            name: client-udp
+            protocol: UDP
+        livenessProbe:
+          httpGet:
+            path: /admin/index.php
+            port: http
+          initialDelaySeconds: 30
+          failureThreshold: 5
+          timeoutSeconds: 5
+        readinessProbe:
+          failureThreshold: 5
+          httpGet:
+            path: /admin/index.php
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 1
+          periodSeconds: 2
+          successThreshold: 2
+          timeoutSeconds: 2
+        resources:
+          limits:
+           cpu: 500m
+           memory: 500Mi
+          requests:
+           cpu: 300m
+           memory: 384Mi
+        volumeMounts:
+          - mountPath: /etc/pihole
+            name: config
+          - mountPath: /etc/dnsmasq.d/02-custom.conf
+            name: custom-dnsmasq
+            subPath: 02-custom.conf
+          - mountPath: /etc/addn-hosts
+            name: custom-dnsmasq
+            subPath: addn-hosts
+      nodeSelector: {}
+      affinity: {}
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+              claimName: pvc-pihole
+        - configMap:
+            defaultMode: 420
+            name: pihole-custom-dnsmasq
+          name: custom-dnsmasq
+status: {}
+---
+#uses k3s built in lb that uses nodeports
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    # which address pool to use form the metallb configmap 
+    metallb.universe.tf/address-pool: network-services
+    # key that tells metallb to share (must be same on both services UDP/TCP)
+    metallb.universe.tf/allow-shared-ip: pihole-svc
+  name: pihole-lb-tcp
+  namespace: pihole
+  labels:
+    app: pihole
+spec:
+  type: LoadBalancer
+  # force to use 1 specific IP for this service (since we are UDP and TCP sep services)
+  loadBalancerIP: 192.168.10.220
+  externalTrafficPolicy: Local
+  sessionAffinity: None
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http
+    - port: 443
+      targetPort: https
+      protocol: TCP
+      name: https
+    - port: 53
+      targetPort: dns
+      protocol: TCP
+      name: dns
+  selector:
+    app: pihole
+---
+#uses k3s built in lb that uses nodeports
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    # which address pool to use form the metallb configmap 
+    metallb.universe.tf/address-pool: network-services
+    # key that tells metallb to share (must be same on both services UDP/TCP)
+    metallb.universe.tf/allow-shared-ip: pihole-svc
+  name: pihole-lb-udp
+  namespace: pihole
+  labels:
+    app: pihole
+spec:
+  type: LoadBalancer
+  sessionAffinity: None
+  loadBalancerIP: 192.168.10.220
+  externalTrafficPolicy: Local
+  ports:
+    - port: 53
+      targetPort: dns-udp
+      protocol: UDP
+      name: dns-udp
+    - port: 67
+      targetPort: client-udp
+      protocol: UDP
+      name: client-udp
+  selector:
+    app: pihole

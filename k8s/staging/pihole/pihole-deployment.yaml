@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: pihole
+  labels:
+    app: pihole
+  name: pihole
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pihole
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 2
+      maxUnavailable: 0
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: pihole
+    spec:
+      dnsPolicy: None
+      terminationGracePeriodSeconds: 30
+      dnsConfig:
+        nameservers:
+        - 127.0.0.1
+        - 8.8.8.8
+      containers:
+      - image: pihole/pihole:latest
+        name: pihole
+        # pull this out into a configmap / secrets
+        env:
+          # this needs to be the same IP used by metalLB on the service(s)
+          # - name: ServerIP
+          #   value: 192.168.10.215 #TODO - change this!! as noted
+          - name: TZ
+            value: "America/Denver"
+          - name: WEBPASSWORD
+            value: piholetest
+        ports:
+          - containerPort: 80
+            name: http
+            protocol: TCP
+          - containerPort: 53
+            name: dns
+            protocol: TCP
+          - containerPort: 53
+            name: dns-udp
+            protocol: UDP
+          - containerPort: 443
+            name: https
+            protocol: TCP
+          - containerPort: 67
+            name: client-udp
+            protocol: UDP
+        livenessProbe:
+          httpGet:
+            path: /admin/index.php
+            port: http
+          initialDelaySeconds: 30
+          failureThreshold: 5
+          timeoutSeconds: 5
+        readinessProbe:
+          failureThreshold: 5
+          httpGet:
+            path: /admin/index.php
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 1
+          periodSeconds: 2
+          successThreshold: 2
+          timeoutSeconds: 2
+        resources:
+          limits:
+           cpu: 500m
+           memory: 500Mi
+          requests:
+           cpu: 300m
+           memory: 384Mi
+        volumeMounts:
+          - mountPath: /etc/pihole
+            name: config
+          - mountPath: /etc/dnsmasq.d/02-custom.conf
+            name: custom-dnsmasq
+            subPath: 02-custom.conf
+          - mountPath: /etc/addn-hosts
+            name: custom-dnsmasq
+            subPath: addn-hosts
+      nodeSelector: {}
+      affinity: {}
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+              claimName: pvc-pihole
+        - configMap:
+            defaultMode: 420
+            name: pihole-custom-dnsmasq
+          name: custom-dnsmasq
+status: {}

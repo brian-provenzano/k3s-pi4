@@ -1,0 +1,13 @@
+# optional for now to customize this if needed.
+# defaults are google DNS
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pihole-custom-dnsmasq
+  namespace: pihole
+  labels:
+    app: pihole
+data:
+  02-custom.conf: |
+    addn-hosts=/etc/addn-hosts
+  addn-hosts: |

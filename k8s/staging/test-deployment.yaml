@@ -1,0 +1,25 @@
+# Just a test deployment for function 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: pihole
+  labels:
+    app: testnginx
+  name: testnginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: testnginx
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: testnginx
+    spec:
+      containers:
+      - image: nginx
+        name: testnginx
+        resources: {}
+status: {}

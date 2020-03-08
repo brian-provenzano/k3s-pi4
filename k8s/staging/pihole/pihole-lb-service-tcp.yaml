@@ -1,0 +1,34 @@
+#uses k3s built in lb that uses nodeports
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    # which address pool to use form the metallb configmap 
+    metallb.universe.tf/address-pool: network-services
+    # key that tells metallb to share (must be same on both services UDP/TCP)
+    metallb.universe.tf/allow-shared-ip: pihole-svc
+  name: pihole-lb-tcp
+  namespace: pihole
+  labels:
+    app: pihole
+spec:
+  type: LoadBalancer
+  # force to use 1 specific IP for this service (since we are UDP and TCP sep services)
+  loadBalancerIP: 192.168.10.220
+  externalTrafficPolicy: Local
+  sessionAffinity: None
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http
+    - port: 443
+      targetPort: https
+      protocol: TCP
+      name: https
+    - port: 53
+      targetPort: dns
+      protocol: TCP
+      name: dns
+  selector:
+    app: pihole
