@@ -29,7 +29,7 @@ Was going to use the prometheus-operator, but currently does not support ARM on 
 ### Storage Classes (options)
 
 #### Local storage provisioner (Local-Path)
-Currently using local-path storage provisioner for some PV/PVC - namely for prometheus, grafana etc which have issues usingNFS storage for persistent volumes (lock file issues). This is included by rancher in k3s by default - it is the default storage class.
+Currently using local-path storage provisioner for some PV/PVC - namely for prometheus, grafana etc which [have issues using NFS storage](https://github.com/prometheus/prometheus/issues/1600) for persistent volumes (lock file issues). This is included by rancher in k3s by default - it is the default storage class.
 
 https://github.com/rancher/local-path-provisioner
 
