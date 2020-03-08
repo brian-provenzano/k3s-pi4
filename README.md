@@ -11,6 +11,13 @@ K3s includes:
 Currently using metallb for LoadBalancer in layer2 mode (not BGP)
 https://metallb.universe.tf/
 
+NOTE: Pi4 Wifi adapter has issues with ARP so when using MetalLB in Layer 2 mode (which is what I am doing), I have to set the wifi adapters to promiscous mode.  This is only bc I am lazy and am currently using the wifi adapters - need ot switch to eth at some point.  Once this is done this problem goes away (I think)
+
+```
+sudo ip link set wlan0 promisc on
+```
+^^ set this to run at boot on the Pi4 if you have this problems
+
 ### Monitoring
 Using grafana, prometheus helm charts
 - https://github.com/helm/charts/tree/master/stable/grafana
