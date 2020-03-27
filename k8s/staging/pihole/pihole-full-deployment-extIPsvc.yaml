@@ -36,6 +36,7 @@ data:
     addn-hosts=/etc/addn-hosts
   addn-hosts: |
 ---
+# uses cloudflared sidecar for dns https: https://github.com/crazy-max/docker-cloudflared ; https://docs.pi-hole.net/guides/dns-over-https/
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -126,6 +127,28 @@ spec:
           - mountPath: /etc/addn-hosts
             name: custom-dnsmasq
             subPath: addn-hosts
+      - image: crazymax/cloudflared:latest
+        name: cloudflared
+        # pull this out into a configmap / secrets
+        env:
+          - name: TZ
+            value: "America/Denver"
+          - name: TUNNEL_DNS_UPSTREAM
+            value: https://1.1.1.1/dns-query,https://1.0.0.1/dns-query
+        ports:
+          - containerPort: 5053
+            name: dnshttp
+            protocol: UDP
+          - containerPort: 49312
+            name: cldflare-met #metrics
+            protocol: TCP
+        resources:
+          limits:
+            cpu: 250m
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            memory: 64Mi
       nodeSelector: {}
       affinity: {}
       volumes:

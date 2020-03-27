@@ -26,6 +26,15 @@ Using grafana, prometheus helm charts
 Was going to use the prometheus-operator, but currently does not support ARM on Pi.
 
 
+### PiHole
+[Deployment yaml](/k8s/staging/pihole)
+
+Now using cloudflared sidecar to provide dns https support
+
+- https://github.com/crazy-max/docker-cloudflared 
+- https://docs.pi-hole.net/guides/dns-over-https/
+
+
 ### Storage Classes (options)
 
 #### Local storage provisioner (Local-Path)
