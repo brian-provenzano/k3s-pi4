@@ -6,6 +6,14 @@ K3s includes:
 - local-path local storage provisioner (rancher)
 - traefik
 
+## Hardware
+Currently only one node (Pi4 with 4GB of RAM) running on wifi networking which is not optimal
+- Pi4 4GB model
+- USB3 HDD (spare spinning disk laptop drive)
+- Official Pi4 USB C power adapter
+- Pi4 Case [with fan and heatsinks](https://www.amazon.com/gp/product/B01LXSMY1N/ref=ppx_yo_dt_b_search_asin_title?ie=UTF8&psc=1)
+
+TODO: expand to 2-3 nodes...
 
 ### Load Balancer - Services
 Currently using metallb for LoadBalancer in layer2 mode (not BGP)
