@@ -35,6 +35,16 @@ Now using cloudflared sidecar to provide dns https support
 - https://docs.pi-hole.net/guides/dns-over-https/
 
 
+### Secrets (Bitnami Sealed Secrets)
+Using [bitnami sealed secrets](https://github.com/bitnami-labs/sealed-secrets) (now has ARM build) in pihole deployments
+
+Quick process:
+- create a k8s secret (base64 encoded)
+- `kubeseal --format yaml <k8s-secrets.yaml >sealedsecrets.yaml`
+- `kubectl apply -f sealedsecrets.yaml`
+
+You can commit the sealedsecret to git
+
 ### Storage Classes (options)
 
 #### Local storage provisioner (Local-Path)

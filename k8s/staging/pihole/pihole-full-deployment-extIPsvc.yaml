@@ -36,6 +36,35 @@ data:
     addn-hosts=/etc/addn-hosts
   addn-hosts: |
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pihole-config
+  namespace: pihole
+data:
+  TZ: "America/Denver"
+  # cloudflared container only
+  TUNNEL_DNS_UPSTREAM: https://1.1.1.1/dns-query,https://1.0.0.1/dns-query
+---
+# need bitnami sealed screts controller installed; create sealed secret with kubeseal client
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  creationTimestamp: null
+  name: pihole-secrets
+  namespace: pihole
+spec:
+  encryptedData:
+    WEB_PASSWORD: AgCENJ6fn1/TqfpAIJFBOy6SXLObh+iCg0zme7Ap7Dy227kkuGRghql4wetDbSWeS3r4pxYTvPY2bXpQyKKYsO8ZD/1AUD7VlpaP6KCGRVM91CZuf95fXfUVGLRa0E460MqVJ8mehL6jl5QpearrgyITGR2isjOQpXNWnlh5tNaZExSpL7R34Z2nFGo+dvCpyfDPpS/ojt/zUYR8sJKzMm9pDFocmGaGN2oL02wgjZwA2gc4JOF25nmMaUuBtHCGBIaTsu+yxkH/dN+OtcIUryAnY6MezAg/kW4UjHb8/4IHi4A0PtPd+om2+fl9bpm3tuchZvm//N53SCUPU32GVEUhiDlSd6zTRXluAwDpB+46yyTzCLW61/LA251xtoCIAqHVnxOeLdaqOdnL+Dd7DqinrChgKE9qBvqBhlwvCmPuC3AmJpoj4SOLcYPKOwFMS7vjuMT4vU+2hyq0RACuz0SwQCl6ZQjYdQttQjLzxJ4pGOw/Hm2KxH4aAaANvoWLXxfSVHz5D3ZwRmbI2BZE6qb1ckrL4ZDLD4NjUnM+M6tVqWYXVHLsFLzie+cHO0Zs7nFMMeJpSa8N7UA2Wd9QLAQ690eBvEPqAgApIpDWDW2X+PiZx6ZmEmMhzZshjxOPzwbM5oSQfm1r2/d9WEQAorOpv9hKWBX2aL9tabYNt/Jrg+YsqDubwVHywZ6SJfs7YxFpwttGB35G/DU=
+  template:
+    metadata:
+      creationTimestamp: null
+      name: pihole-secrets
+      namespace: pihole
+status: {}
+
+
+---
 # uses cloudflared sidecar for dns https: https://github.com/crazy-max/docker-cloudflared ; https://docs.pi-hole.net/guides/dns-over-https/
 apiVersion: apps/v1
 kind: Deployment
@@ -69,15 +98,20 @@ spec:
       containers:
       - image: pihole/pihole:latest
         name: pihole
+        envFrom:
+          - configMapRef:
+              name: pihole-config
+          - secretRef:
+              name: pihole-secrets
         # pull this out into a configmap / secrets
-        env:
+        # env:
           # this needs to be the same IP used by metalLB on the service(s)
           # - name: ServerIP
           #   value: 192.168.10.215 #TODO - change this!! as noted
-          - name: TZ
-            value: "America/Denver"
-          - name: WEBPASSWORD
-            value: piholetest
+          # - name: TZ
+          #   value: "America/Denver"
+          # - name: WEBPASSWORD
+          #   value: piholetest
         ports:
           - containerPort: 80
             name: http
@@ -130,11 +164,9 @@ spec:
       - image: crazymax/cloudflared:latest
         name: cloudflared
         # pull this out into a configmap / secrets
-        env:
-          - name: TZ
-            value: "America/Denver"
-          - name: TUNNEL_DNS_UPSTREAM
-            value: https://1.1.1.1/dns-query,https://1.0.0.1/dns-query
+        envFrom:
+          - configMapRef:
+              name: pihole-config
         ports:
           - containerPort: 5053
             name: dnshttp
@@ -160,68 +192,3 @@ spec:
             name: pihole-custom-dnsmasq
           name: custom-dnsmasq
 status: {}
----
-#uses k3s built in lb that uses nodeports
-apiVersion: v1
-kind: Service
-metadata:
-  annotations:
-    # which address pool to use form the metallb configmap 
-    metallb.universe.tf/address-pool: network-services
-    # key that tells metallb to share (must be same on both services UDP/TCP)
-    metallb.universe.tf/allow-shared-ip: pihole-svc
-  name: pihole-lb-tcp
-  namespace: pihole
-  labels:
-    app: pihole
-spec:
-  type: LoadBalancer
-  # force to use 1 specific IP for this service (since we are UDP and TCP sep services)
-  loadBalancerIP: 192.168.10.220
-  externalTrafficPolicy: Local
-  sessionAffinity: None
-  ports:
-    - port: 80
-      targetPort: http
-      protocol: TCP
-      name: http
-    - port: 443
-      targetPort: https
-      protocol: TCP
-      name: https
-    - port: 53
-      targetPort: dns
-      protocol: TCP
-      name: dns
-  selector:
-    app: pihole
----
-#uses k3s built in lb that uses nodeports
-apiVersion: v1
-kind: Service
-metadata:
-  annotations:
-    # which address pool to use form the metallb configmap 
-    metallb.universe.tf/address-pool: network-services
-    # key that tells metallb to share (must be same on both services UDP/TCP)
-    metallb.universe.tf/allow-shared-ip: pihole-svc
-  name: pihole-lb-udp
-  namespace: pihole
-  labels:
-    app: pihole
-spec:
-  type: LoadBalancer
-  sessionAffinity: None
-  loadBalancerIP: 192.168.10.220
-  externalTrafficPolicy: Local
-  ports:
-    - port: 53
-      targetPort: dns-udp
-      protocol: UDP
-      name: dns-udp
-    - port: 67
-      targetPort: client-udp
-      protocol: UDP
-      name: client-udp
-  selector:
-    app: pihole
