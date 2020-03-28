@@ -46,6 +46,7 @@ Quick process:
 You can commit the sealedsecret to git
 
 ### Storage Classes (options)
+Storage is currently handled by a USB3 attached local drive on the node.  Booting and root filesystem is still on the SD card (TODO - to change this to /boot on SDcard and all other mount points to the USB drive.  Currently should work on Pi4 - hasnt in the past.)
 
 #### Local storage provisioner (Local-Path)
 Currently using local-path storage provisioner for some PV/PVC - namely for prometheus, grafana etc which [have issues using NFS storage](https://github.com/prometheus/prometheus/issues/1600) for persistent volumes (lock file issues). This is included by rancher in k3s by default - it is the default storage class.

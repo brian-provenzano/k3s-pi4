@@ -63,3 +63,8 @@ initChownData:
    requests:
      cpu: 100m
      memory: 128Mi
+
+# admin:
+#   existingSecret: ""
+#   userKey: ADMIN_USER
+#   passwordKey: ADMIN_PASSWORD
