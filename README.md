@@ -26,12 +26,32 @@ sudo ip link set wlan0 promisc on
 ```
 ^^ set this to run at boot on the Pi4 if you have this problems
 
+
 ### Monitoring
 Using grafana, prometheus helm charts
 - https://github.com/helm/charts/tree/master/stable/grafana
 - https://github.com/helm/charts/tree/master/stable/prometheus
 
 Was going to use the prometheus-operator, but currently does not support ARM on Pi.
+
+
+### ArgoCD
+[ArgoCD deployment](/k8s/argocd)
+
+https://argoproj.github.io/
+
+No ARM images were available so using `image: phillebaba/argocd:v1.4.2` in the deployment.
+
+
+### Polaris
+https://github.com/FairwindsOps/polaris
+
+Uses the Polaris Armv7 v1.0.3 binary here: https://github.com/FairwindsOps/polaris/releases/download/1.0.3/polaris_1.0.3_linux_armv7.tar.gz
+
+Custom [Dockerfile](/k8s/polaris/Dockerfile) and [Makefile](/k8s/polaris/Makefile) to build ARM image since Polaris doesnt support yet (but they do have the ARM binary ^^)
+
+Quick Setup:
+Just swap out the image in the v1.0.3 [deployment yaml](https://github.com/FairwindsOps/polaris/releases/download/1.0.3/dashboard.yaml) for this my [custom image](https://hub.docker.com/r/warpigg/polaris-arm) and apply.  Already done [here](/k8s/polaris/dashboard.yaml)
 
 
 ### PiHole
