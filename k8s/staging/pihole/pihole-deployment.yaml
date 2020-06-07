@@ -36,15 +36,6 @@ spec:
               name: pihole-config
           - secretRef:
               name: pihole-secrets
-        # pull this out into a configmap / secrets
-        # env:
-          # this needs to be the same IP used by metalLB on the service(s)
-          # - name: ServerIP
-          #   value: 192.168.10.215 #TODO - change this!! as noted
-          # - name: TZ
-          #   value: "America/Denver"
-          # - name: WEBPASSWORD
-          #   value: piholetest
         ports:
           - containerPort: 80
             name: http
@@ -96,7 +87,6 @@ spec:
             subPath: addn-hosts
       - image: crazymax/cloudflared:latest
         name: cloudflared
-        # pull this out into a configmap / secrets
         envFrom:
           - configMapRef:
               name: pihole-config
