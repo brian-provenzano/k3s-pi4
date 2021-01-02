@@ -1,3 +1,6 @@
+# THIS PROJECT IS DEPRECATED - see [https://github.com/brian-provenzano/k3s-raspberry-atomic-pi](https://github.com/brian-provenzano/k3s-raspberry-atomic-pi)
+
+
 ## K3s on Raspberry Pi AKA Mess O' Code
 This is just a local project to get some items running on k3s 1 node "cluster" on Pi4 - this repo is not well documented.  It is just here for me (for now) :)
 
